@@ -1,0 +1,102 @@
+---
+title: "Workmarket Challange"
+output: html_document
+---
+
+
+
+I have picked first two challanges.
+
+<b> 1. Counting Vitae</b>  
+
+Take the plaintext version of your resume (or linkedin profile) and create a bar chart of character frequency. (Bonus: programmatically strip out punctuation and whitespace.)
+
+```{r}
+A<-"~/Desktop/Punam Katariya Resume.txt"
+con<-file(A,open="r")
+line<-readLines(con)
+close(con)
+length(line)
+```
+
+clean it up.
+
+```{r,warning=FALSE}
+txt<-tolower(unlist(strsplit(line,split="")))
+txt1<-na.omit(txt)
+chr_txt<-grep("[a-z]",txt1)
+chr_str<-txt1[chr_txt]
+tab<-table(chr_str)
+```
+
+Fun part plotting :)
+
+```{r, echo=FALSE}
+barplot(tab,main="My Resume Character Frequency Graph",col="blue")
+```
+
+I guess ggplot does make it look better.
+
+```{r,echo=FALSE}
+library(ggplot2)
+ggplot(as.data.frame(tab),aes(x=chr_str,y=Freq))+
+geom_bar(stat="identity",fill="Salmon")+xlab("Character")+
+ggtitle("My Resume Character Frequency Graph\n") +
+theme(panel.background=element_rect(fill="lightblue"))
+```
+
+<b> 2. Friendly Competition</b>
+
+Here’s a list of all open jobs for the City of New York. <a> https://data.cityofnewyork.us/Business/NYC-Jobs/kpav-sd4t </a>
+
+Determine:
+
+1. Who has the most openings?
+
+```{r}
+library(knitr)
+ny_jobs<-read.csv("NYC_Jobs.csv")
+names(ny_jobs)
+jobs<-ny_jobs[,c(2,4)]
+depart_jobs<-unique(head(jobs[rev(order(jobs$X..Of.Positions)),],10))
+kable(depart_jobs, format="markdown")
+```
+
+
+2. Which departments have the highest and the lowest paying positions (based on current job openings)?
+
+
+```{r}
+ny_jobs$salary_mean<-round(((ny_jobs$Salary.Range.From+ny_jobs$Salary.Range.To)/2),digits=0)  
+newdf<-ny_jobs[,c(2,5,11,27)]
+
+levels(newdf$Salary.Frequency) <- c(1, 52*5, 52*40)
+newdf$Salary <- as.numeric(as.character(newdf$Salary.Frequency))*newdf$salary_mean
+levels(newdf$Salary.Frequency) <- c("Annual", "Daily", "Hourly")
+
+higest_pay<-unique(head(newdf[rev(order(newdf$Salary)),],10))
+lowest_pay<-tail(newdf[rev(order(newdf$Salary)),],10)
+kable(higest_pay,format="markdown") # Highest pay
+kable(lowest_pay,format="markdown") # Lowest Pay
+```
+
+
+- DEPT OF HEALTH/MENTAL HYGIENE pays highest salary to Deputy Chief City Medical Examine position 
+- DEPARTMENT OF FINANCE pays lowest wage to many intern and analyst positions
+
+
+3. Which jobs do you think are the hardest to fill? (What makes you say that?)
+
+
+```{r}
+long_post<-ny_jobs[,c(2,5,23,25)]
+long_post$newtime<-as.numeric(difftime(strptime(paste(long_post[,3]),"%m/%d/%Y %H:%M:%S"),
+                    strptime(paste(long_post[,4]),"%m/%d/%Y %H:%M:%S")),units="mins") 
+
+most_difficult<-head(long_post[order(long_post$newtime),],5)
+kable(most_difficult,format="markdown")
+```
+
+
+Most difficult job to fill is waiver analyst from ADMIN FOR CHILDREN'S SVCS agency. The logic is the longest period this job was posted and updated which is -714180 minutes (11903 hours or 496 days). That makes it hardest to fill this position.
+
